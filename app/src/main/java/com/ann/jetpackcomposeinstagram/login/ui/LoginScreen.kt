@@ -1,7 +1,6 @@
-package com.ann.jetpackcomposeinstagram
+package com.ann.jetpackcomposeinstagram.login.ui
 
 import android.app.Activity
-import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +13,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,13 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ann.jetpackcomposeinstagram.R
 
-@Preview
 @Composable
-fun LoginScreen() {
+fun LoginScreen(loginViewModel: LoginViewModel) {
     Box(
         Modifier
             .fillMaxSize()
@@ -38,7 +36,7 @@ fun LoginScreen() {
             .padding(8.dp)
     ) {
         Header(Modifier.align(Alignment.TopEnd))
-        Body(Modifier.align(Alignment.Center))
+        Body(Modifier.align(Alignment.Center), loginViewModel)
         Footer(Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -78,29 +76,27 @@ fun SignUp() {
 }
 
 @Composable
-fun Body(modifier: Modifier) {
+fun Body(modifier: Modifier, loginViewModel: LoginViewModel) {
 
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var isLoginEnabled by rememberSaveable { mutableStateOf(false) }
+    val email: String by loginViewModel.email.observeAsState(initial = "")
+    val password: String by loginViewModel.password.observeAsState(initial = "")
+    val isLoginEnable: Boolean by loginViewModel.isLoginEnable.observeAsState(initial = false)
 
     Column(modifier = modifier)
     {
         ImageLogo(Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.size(16.dp))
         EmailEditText(email) {
-            email = it
-            isLoginEnabled = enableLogin(email, password)
+            loginViewModel.onLoginChanged(email = it, password =  password)
         }
         Spacer(modifier = Modifier.size(4.dp))
-        PasswordEditText(password) {
-            password = it
-            isLoginEnabled = enableLogin(email, password)
+        PasswordEditText(password, loginViewModel) {
+            loginViewModel.onLoginChanged(email = email, password = it)
         }
         Spacer(modifier = Modifier.size(8.dp))
         ForgotPassword(Modifier.align(Alignment.End))
         Spacer(modifier = Modifier.size(16.dp))
-        LoginButton(isLoginEnabled)
+        LoginButton(isLoginEnable)
         Spacer(modifier = Modifier.size(16.dp))
         LoginDivider()
         Spacer(modifier = Modifier.size(32.dp))
@@ -187,9 +183,9 @@ fun ForgotPassword(modifier: Modifier) {
 }
 
 @Composable
-fun PasswordEditText(password: String, onTextChanged: (String) -> Unit) {
+fun PasswordEditText(password: String, loginViewModel: LoginViewModel, onTextChanged: (String) -> Unit) {
 
-    var passwordVisivility by remember { mutableStateOf(false) }
+    val passwordVisivility: Boolean by loginViewModel.isPasswordVisible.observeAsState(initial = false)
 
     TextField(
         value = password,
@@ -209,7 +205,7 @@ fun PasswordEditText(password: String, onTextChanged: (String) -> Unit) {
             val image =
                 if (passwordVisivility) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
 
-            IconButton(onClick = { passwordVisivility = !passwordVisivility }) {
+            IconButton(onClick = { loginViewModel.onPasswordVisibilityChanged(passwordVisivility) }) {
                 Icon(imageVector = image, contentDescription = "Show password")
             }
         },
@@ -255,6 +251,3 @@ fun Header(modifier: Modifier) {
         contentDescription = "Close App",
         modifier = modifier.clickable { activity.finish() })
 }
-
-fun enableLogin(email: String, password: String) =
-    Patterns.EMAIL_ADDRESS.matcher(email).matches() && password.length > 6
